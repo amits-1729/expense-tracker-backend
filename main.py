@@ -104,12 +104,32 @@ def get_categories():
     return {"categories": data}
 
 
-@app.get("/expenses/trend")
-def get_expense_trend(type: str = Query(...), current_user: int = Depends(get_current_user)):
+@app.get("/expenses/category-slice")
+def get_category_slice(
+    filter: str = Query("today"), 
+    current_user: int = Depends(get_current_user)
+):
+    
+    if filter == "today":
+        data = db.get_today_category_split(current_user)
 
-    if type != "daily":
-        raise HTTPException(status_code=400, detail="For now only daily supported")
+    elif filter == "month":
+        data = db.get_category_split_month(current_user)
 
-    data = db.get_daily_trend(current_user)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid filter")
 
+    return data
+
+@app.get("/expenses/daily-metrics")
+def daily_metrics(
+    filter: str = Query("today"),
+    current_user: int = Depends(get_current_user)
+):
+    if filter == "today":
+        data = db.get_today_metrics(current_user)
+    elif filter == "yesterday":
+        data = db.get_yesterday_metrics(current_user)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid filter")
     return data

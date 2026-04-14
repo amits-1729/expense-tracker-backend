@@ -1,6 +1,7 @@
 import os
 import mysql.connector
 from mysql.connector import Error
+from datetime import date
 
 
 # class DBhelper:
@@ -227,3 +228,69 @@ class DBhelper:
         return data
     
 
+    def get_today_category_split(self, user_id):
+        conn = self.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT c.name as category, SUM(e.amount) as total
+        FROM expenses e
+        JOIN categories c ON e.category_id = c.id
+        WHERE e.user_id = %s 
+        AND DATE(e.expense_date) = CURDATE()
+        GROUP BY c.name;
+        """
+
+        cursor.execute(query, (user_id,))
+        data = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
+
+        return data
+
+    def get_today_metrics(self, user_id):
+        conn = self.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT 
+            SUM(amount) as total_spend,
+            COUNT(*) as total_transactions,
+            AVG(amount) as avg_spend
+        FROM expenses
+        WHERE user_id = %s
+        AND expense_date >= CURDATE()
+        AND expense_date < CURDATE() + INTERVAL 1 DAY;
+        """
+
+        cursor.execute(query, (user_id,))
+        data = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return data
+    
+
+    def get_yesterday_metrics(self, user_id):
+        conn = self.get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT 
+            SUM(amount) as total_spend,
+            COUNT(*) as total_transactions,
+            AVG(amount) as avg_spend
+        FROM expenses
+        WHERE user_id = %s
+        AND DATE(expense_date) = CURDATE() - INTERVAL 1 DAY;
+        """
+
+        cursor.execute(query, (user_id,))
+        data = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        return data
