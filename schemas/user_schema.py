@@ -8,3 +8,8 @@ class RegisterUser(BaseModel):
 class LoginUser(BaseModel):
     email: EmailStr
     password: str
+
+
+class CategoryCreate(BaseModel):
+    category: str
+    id: int

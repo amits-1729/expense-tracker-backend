@@ -18,6 +18,7 @@ load_dotenv()
 
 
 class DBhelper:
+    # For connecting to database
     def get_connection(self):
         conn = mysql.connector.connect(
             host=os.getenv("DB_HOST"),
@@ -27,13 +28,14 @@ class DBhelper:
             port=int(os.getenv("DB_PORT", 3306))
         )
         return conn
-    # REGISTER
+    
+    # For registering using name, email, password
     def register(self, name, email, password):
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
 
-            query = "INSERT INTO users (name, email, password_hash) VALUES (%s, %s, %s)"
+            query = "INSERT INTO users (name, email, password) VALUES (%s, %s, %s)"
             cursor.execute(query, (name, email, password))
             conn.commit()
             return {"success": True}
@@ -47,7 +49,7 @@ class DBhelper:
 
 
 
-    # GET USER BY EMAIL
+    # fetching user's credentials using email
     def get_user_by_email(self, email):
         conn = self.get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -62,7 +64,7 @@ class DBhelper:
         return data
     
 
-    # GET USER BY USER ID
+    # fetch user's creadentials using user_id
     def get_user_by_id(self, user_id):
         conn = self.get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -76,7 +78,7 @@ class DBhelper:
 
         return data
 
-    # ADD EXPENSE (FIXED: user_id)
+    # add expense using user_id
     def add_expense(self, user_id, expense):
         try:
             conn = self.get_connection()
@@ -107,7 +109,7 @@ class DBhelper:
             cursor.close()
             conn.close()
 
-    # GET EXPENSES
+    # fetch user's expenses using user_id
     def get_expenses(self, user_id):
         conn = self.get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -122,12 +124,11 @@ class DBhelper:
 
         return data
     
-    # UPDATE EXPENSE
+    # update expense using expense_id
     def update_expense(self, expense_id, user_id, expense):
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-
             fields = []
             values = []
 
@@ -164,7 +165,6 @@ class DBhelper:
 
             cursor.execute(query, tuple(values))
             conn.commit()
-
             return {"success": True}
 
         except Error as e:
@@ -174,7 +174,7 @@ class DBhelper:
             cursor.close()
             conn.close()
 
-    #  DELETE
+    #  delete expense using expense_id
     def delete_expense(self, expense_id, user_id):
         try:
             conn = self.get_connection()
@@ -194,38 +194,86 @@ class DBhelper:
             conn.close()
 
 
-    # GET CATEGORIES
-    def get_categories(self):
-        conn = self.get_connection()
-        cursor = conn.cursor(dictionary=True)
+    # get categories default as well as user specific
+    def get_categories(self,user_id):
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor(dictionary=True)
 
-        query = "SELECT * FROM categories"
-        cursor.execute(query)
+            query = "SELECT name,id FROM categories WHERE user_id=%s OR is_default = TRUE"
+            cursor.execute(query,(user_id,))
 
-        data = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
-
-        return data
-
-    def get_daily_trend(self, user_id):
-        conn = self.get_connection()
-        cursor = conn.cursor(dictionary=True)
-        query = """
-        SELECT DATE(expense_date) as day, SUM(amount) as total
-        FROM expenses
-        WHERE user_id = %s
-        GROUP BY day
-        ORDER BY day;
-        """
-        cursor.execute(query,(user_id,))
-        data = cursor.fetchall()
-
-        cursor.close()
-        conn.close()
+            data = cursor.fetchall()
+        except Error as e:
+            return {"error": str(e)}
+        finally:
+            cursor.close()
+            conn.close()
 
         return data
+    
+    # add category using user_id
+    def add_category(self,user_id,category):
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor(dictionary=True)
+            check_query = """SELECT 1 FROM categories WHERE name = %s AND (is_default = TRUE OR user_id = %s);"""
+            values = (category,user_id)
+            cursor.execute(check_query, values)
+            result = cursor.fetchone()
+
+            if result:
+                return {"message": "Category already exist"}
+            else:
+                query = """INSERT INTO categories (name, user_id, is_default) VALUES (%s, %s, FALSE);"""
+                cursor.execute(query,values)
+                conn.commit()
+                return {"message": "category added successfully"}
+
+        except Error as e:
+            return {"error": str(e)}
+
+        finally:
+            cursor.close()
+            conn.close()
+
+    # for deleting category using category id
+    def del_category(self,cat_id,user_id):
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor(dictionary=True)
+
+            query = """DELETE FROM categories WHERE id = %s and user_id = %s"""
+            cursor.execute(query,(cat_id,user_id))
+            conn.commit()
+
+            return {"message":"Category deleted succefully"}
+
+        except Error as e:
+            return {"error": str(e)}
+        
+        finally:
+            cursor.close()
+            conn.close()
+
+
+    # def get_daily_trend(self, user_id):
+    #     conn = self.get_connection()
+    #     cursor = conn.cursor(dictionary=True)
+    #     query = """
+    #     SELECT DATE(expense_date) as day, SUM(amount) as total
+    #     FROM expenses
+    #     WHERE user_id = %s
+    #     GROUP BY day
+    #     ORDER BY day;
+    #     """
+    #     cursor.execute(query,(user_id,))
+    #     data = cursor.fetchall()
+
+    #     cursor.close()
+    #     conn.close()
+
+    #     return data
     
 
     def get_today_category_split(self, user_id):
@@ -266,9 +314,6 @@ class DBhelper:
 
         cursor.execute(query, (user_id,))
         data = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
 
         return data
     

@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database.database import DBhelper
-from schemas.user_schema import RegisterUser, LoginUser
+from schemas.user_schema import RegisterUser, LoginUser, CategoryCreate
 from utils.password import hash_password, verify_password
 from utils.jwt_handler import create_access_token, verify_token
 from schemas.expense_schema import AddExpense, UpdateExpense
@@ -31,7 +31,7 @@ def login(user: LoginUser):
     if not data:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    if not verify_password(user.password, data["password_hash"]):
+    if not verify_password(user.password, data["password"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     token = create_access_token({"user_id": data["id"]})
@@ -41,7 +41,7 @@ def login(user: LoginUser):
     }
 
 
-
+# for checking authentication
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     user_id = verify_token(token)
@@ -55,13 +55,6 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
 
     return user_id
 
-
-# @app.get("/profile")
-# def profile(current_user: str = Depends(get_current_user)):
-#     return { 
-#         "message": "Welcome to your profile",
-#         "user_email": current_user
-#     }
 
 @app.post("/add-expense")
 def add_expense(expense: AddExpense, current_user: int = Depends(get_current_user)):
@@ -98,14 +91,38 @@ def delete_expense(expense_id: int, current_user: int = Depends(get_current_user
 
     return {"message": "Expense deleted successfully"}
     
+
 @app.get("/categories")
-def get_categories():
-    data = db.get_categories()
-    return {"categories": data}
+def get_categories(current_user:int = Depends(get_current_user)):
+    data = db.get_categories(current_user)
+    if "error" in data:
+        raise HTTPException(status_code=400, detail=data["error"])
+    return {
+        "message": "categories fetched successfully",
+        "categories": data
+    }
+
+@app.post("/add-category")
+def add_category(user_input:CategoryCreate, current_user:int = Depends(get_current_user)):
+    response = db.add_category(current_user,user_input.category)
+    if "error" in response:
+        raise HTTPException(status_code=400, detail=response["error"])
+    return {
+        "message": response["message"]
+    }
+
+@app.delete("/delete-category")
+def del_category(user_input:CategoryCreate, current_user:int = Depends(get_current_user)):
+    response = db.del_category(user_input.id,current_user)
+    if "error" in response:
+        raise HTTPException(status_code=400, detail=response["error"])
+    return {
+        "message": response["message"]
+    }
 
 
-@app.get("/expenses/category-slice")
-def get_category_slice(
+@app.get("/expenses/category-split")
+def get_category_split(
     filter: str = Query("today"), 
     current_user: int = Depends(get_current_user)
 ):
@@ -119,7 +136,9 @@ def get_category_slice(
     else:
         raise HTTPException(status_code=400, detail="Invalid filter")
 
-    return data
+    return {
+        "cat_expenses": data
+    }
 
 @app.get("/expenses/daily-metrics")
 def daily_metrics(
