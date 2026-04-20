@@ -1,7 +1,6 @@
 import os
 import mysql.connector
 from mysql.connector import Error
-import sys
 from datetime import date
 
 from dotenv import load_dotenv
@@ -21,8 +20,9 @@ class DBhelper:
                 port=int(os.getenv("DB_PORT", 3306))
             )
             self.cursor = self.conn.cursor(dictionary=True)
-        except:
-            sys.exit(0)
+
+        except Exception as e:
+            return {"error": str(e)}
 
 
     # Register function
