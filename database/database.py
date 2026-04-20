@@ -205,6 +205,12 @@ class DBhelper:
         self.cursor.execute(query, (user_id,))
         data = self.cursor.fetchone()
 
+        if data["total_spend"] is None:
+            data["total_spend"] = 0
+
+        if data["avg_spend"] is None:
+            data["avg_spend"] = 0
+
         return data
     
 
@@ -220,6 +226,12 @@ class DBhelper:
         """
         self.cursor.execute(query, (user_id,))
         data = self.cursor.fetchone()
+
+        if data["total_spend"] is None:
+            data["total_spend"] = 0
+
+        if data["avg_spend"] is None:
+            data["avg_spend"] = 0
 
         return data
     
@@ -252,6 +264,12 @@ class DBhelper:
         self.cursor.execute(query, (user_id,))
         data = self.cursor.fetchone()
 
+        if data["total_spend"] is None:
+            data["total_spend"] = 0
+
+        if data["avg_spend"] is None:
+            data["avg_spend"] = 0
+
         return data
     
     def get_last_week_metrics(self, user_id):
@@ -267,6 +285,12 @@ class DBhelper:
         """
         self.cursor.execute(query, (user_id,))
         data = self.cursor.fetchone()
+
+        if data["total_spend"] is None:
+            data["total_spend"] = 0
+
+        if data["avg_spend"] is None:
+            data["avg_spend"] = 0
 
         return data
     
