@@ -7,7 +7,7 @@ load_dotenv()
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 150
 
 
 def create_access_token(data: dict):
@@ -24,7 +24,6 @@ def verify_token(token: str):
         user_id = payload.get("user_id")
         if user_id is None:
             return None
-        
         return user_id
 
     except JWTError:
