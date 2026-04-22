@@ -376,8 +376,8 @@ class DBhelper:
                 AND DATE(e.expense_date) = CURDATE()
                 GROUP BY c.name;
             """
-            self.cursor.execute(query, (user_id,))
-            data = self.cursor.fetchall()
+            cursor.execute(query, (user_id,))
+            data = cursor.fetchall()
 
             return data
         
@@ -407,8 +407,8 @@ class DBhelper:
                 AND expense_date >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY
                 AND expense_date <= CURDATE();
             """
-            self.cursor.execute(query, (user_id,))
-            data = self.cursor.fetchone()
+            cursor.execute(query, (user_id,))
+            data = cursor.fetchone()
 
             if data["total_spend"] is None:
                 data["total_spend"] = 0
@@ -443,8 +443,8 @@ class DBhelper:
                 AND expense_date >= CURDATE() - INTERVAL (WEEKDAY(CURDATE()) + 7) DAY
                 AND expense_date < CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY;
             """
-            self.cursor.execute(query, (user_id,))
-            data = self.cursor.fetchone()
+            cursor.execute(query, (user_id,))
+            data = cursor.fetchone()
 
             if data["total_spend"] is None:
                 data["total_spend"] = 0
@@ -480,8 +480,8 @@ class DBhelper:
                 GROUP BY c.name;
             """
 
-            self.cursor.execute(query, (user_id,))
-            data = self.cursor.fetchall()
+            cursor.execute(query, (user_id,))
+            data = cursor.fetchall()
 
             return data
         
@@ -509,8 +509,8 @@ class DBhelper:
                 AND expense_date <= CURDATE() 
                 GROUP BY date
             """
-            self.cursor.execute(query,(user_id,))
-            data = self.cursor.fetchall()
+            cursor.execute(query,(user_id,))
+            data = cursor.fetchall()
 
             return data
         
