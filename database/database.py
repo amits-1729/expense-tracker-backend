@@ -8,8 +8,6 @@ load_dotenv()
 
 
 class DBhelper:
-    
-    # For connecting to database
  
     def get_connection(self):
         conn = mysql.connector.connect(
@@ -22,7 +20,7 @@ class DBhelper:
         return conn
 
 
-    # Register function
+    # Register function -------------------------------------------------------------
     def register(self, name, email, password):
         conn = None
         cursor = None
@@ -46,9 +44,7 @@ class DBhelper:
                 conn.close()
 
 
-    # Fetch user's credentials-------------------------------------------------
-
-    # Fetch user's credentials by email
+    # Fetch user's credentials by email--------------------------------------------
     def get_user_by_email(self, email):
         conn = self.get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -63,7 +59,7 @@ class DBhelper:
         return data
     
 
-    # Fetch user's creadentials by user_id
+    # Fetch user's creadentials by user_id----------------------------------
     def get_user_by_id(self, user_id):
         conn = self.get_connection()
         cursor = conn.cursor(dictionary=True)
@@ -285,25 +281,14 @@ class DBhelper:
                 conn.close()
     
 
-   
-
-    def get_today_metric(self, user_id):
+    def get_metric(self,query,user_id):
         conn = None
         cursor = None
         try:
             conn = self.get_connection()
             cursor = conn.cursor(dictionary=True)
-            query = """
-                SELECT 
-                SUM(amount) as total_spend,
-                COUNT(*) as total_transactions,
-                AVG(amount) as avg_spend
-                FROM expenses
-                WHERE user_id = %s
-                AND expense_date >= CURDATE()
-                AND expense_date < CURDATE() + INTERVAL 1 DAY;
-            """
-            cursor.execute(query, (user_id,))
+
+            cursor.execute(query,(user_id,))
             data = cursor.fetchone()
 
             if data["total_spend"] is None:
@@ -322,60 +307,40 @@ class DBhelper:
                 cursor.close()
             if conn:
                 conn.close()
+
+    def get_today_metric(self, user_id):
+        query = """
+            SELECT 
+            SUM(amount) as total_spend,
+            COUNT(*) as total_transactions,
+            AVG(amount) as avg_spend
+            FROM expenses
+            WHERE user_id = %s
+            AND expense_date >= CURDATE()
+            AND expense_date < CURDATE() + INTERVAL 1 DAY;
+        """
+        return self.get_metric(query,user_id)
     
 
     def get_yesterday_metric(self, user_id):
-        conn = None
-        cursor = None
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor(dictionary=True)
-
-            query = """
-                SELECT 
-                SUM(amount) as total_spend,
-                COUNT(*) as total_transactions,
-                AVG(amount) as avg_spend
-                FROM expenses
-                WHERE user_id = %s
-                AND DATE(expense_date) = CURDATE() - INTERVAL 1 DAY;
-            """
-
-            cursor.execute(query, (user_id,))
-            data = cursor.fetchone()
-
-            # Handle NULL values
-            if data["total_spend"] is None:
-                data["total_spend"] = 0
-
-            if data["avg_spend"] is None:
-                data["avg_spend"] = 0
-
-            return data
-
-        except Error as e:
-            return {"error": str(e)}
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        query = """
+            SELECT 
+            SUM(amount) as total_spend,
+            COUNT(*) as total_transactions,
+            AVG(amount) as avg_spend
+            FROM expenses
+            WHERE user_id = %s
+            AND DATE(expense_date) = CURDATE() - INTERVAL 1 DAY;
+        """
+        return self.get_metric(query,user_id)
     
-    def get_daily_category_split(self, user_id):
+    def get_category_split(self,query,user_id):
         conn = None
         cursor = None
         try:
             conn = self.get_connection()
             cursor = conn.cursor(dictionary=True)
-            query = """
-                SELECT c.name as category, SUM(e.amount) as total
-                FROM expenses e
-                JOIN categories c ON e.category_id = c.id
-                WHERE e.user_id = %s 
-                AND DATE(e.expense_date) = CURDATE()
-                GROUP BY c.name;
-            """
+
             cursor.execute(query, (user_id,))
             data = cursor.fetchall()
 
@@ -389,136 +354,67 @@ class DBhelper:
                 cursor.close()
             if conn:
                 conn.close()
+
+
+    def get_daily_category_split(self, user_id):
+        query = """
+            SELECT c.name as category, SUM(e.amount) as total
+            FROM expenses e
+            JOIN categories c ON e.category_id = c.id
+            WHERE e.user_id = %s 
+            AND DATE(e.expense_date) = CURDATE()
+            GROUP BY c.name;
+        """
+        return self.get_category_split(query,user_id)
     
 
     def get_current_week_metrics(self, user_id):
-        conn = None
-        cursor = None
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor(dictionary=True)
-            query = """
-                SELECT 
-                SUM(amount) as total_spend,
-                COUNT(*) as total_transactions,
-                AVG(amount) as avg_spend
-                FROM expenses
-                WHERE user_id = %s
-                AND expense_date >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY
-                AND expense_date <= CURDATE();
-            """
-            cursor.execute(query, (user_id,))
-            data = cursor.fetchone()
-
-            if data["total_spend"] is None:
-                data["total_spend"] = 0
-
-            if data["avg_spend"] is None:
-                data["avg_spend"] = 0
-
-            return data
-        
-        except Error as e:
-            return {"error": str(e)}
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        query = """
+            SELECT 
+            SUM(amount) as total_spend,
+            COUNT(*) as total_transactions,
+            AVG(amount) as avg_spend
+            FROM expenses
+            WHERE user_id = %s
+            AND expense_date >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY
+            AND expense_date <= CURDATE();
+        """
+        return self.get_metric(query,user_id)
     
     def get_last_week_metrics(self, user_id):
-        conn = None
-        cursor = None
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor(dictionary=True)
-            query = """
-                SELECT 
-                SUM(amount) as total_spend,
-                COUNT(*) as total_transactions,
-                AVG(amount) as avg_spend
-                FROM expenses
-                WHERE user_id = %s
-                AND expense_date >= CURDATE() - INTERVAL (WEEKDAY(CURDATE()) + 7) DAY
-                AND expense_date < CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY;
-            """
-            cursor.execute(query, (user_id,))
-            data = cursor.fetchone()
-
-            if data["total_spend"] is None:
-                data["total_spend"] = 0
-
-            if data["avg_spend"] is None:
-                data["avg_spend"] = 0
-
-            return data
-        
-        except Error as e:
-            return {"error": str(e)}
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        query = """
+            SELECT 
+            SUM(amount) as total_spend,
+            COUNT(*) as total_transactions,
+            AVG(amount) as avg_spend
+            FROM expenses
+            WHERE user_id = %s
+            AND expense_date >= CURDATE() - INTERVAL (WEEKDAY(CURDATE()) + 7) DAY
+            AND expense_date < CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY;
+        """
+        return self.get_metric(query,user_id)
     
 
     def get_weekly_category_split(self, user_id):
-        conn = None
-        cursor = None
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor(dictionary=True)
-            query = """
-                SELECT c.name as category, SUM(e.amount) as total
-                FROM expenses e
-                JOIN categories c ON e.category_id = c.id
-                WHERE e.user_id = %s 
-                AND expense_date >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY
-                AND expense_date <= CURDATE()
-                GROUP BY c.name;
-            """
-
-            cursor.execute(query, (user_id,))
-            data = cursor.fetchall()
-
-            return data
-        
-        except Error as e:
-            return {"error": str(e)}
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        query = """
+            SELECT c.name as category, SUM(e.amount) as total
+            FROM expenses e
+            JOIN categories c ON e.category_id = c.id
+            WHERE e.user_id = %s 
+            AND expense_date >= CURDATE() - INTERVAL WEEKDAY(CURDATE()) DAY
+            AND expense_date <= CURDATE()
+            GROUP BY c.name;
+        """
+        return self.get_category_split(query,user_id)
     
 
     def get_daily_trend(self, user_id):
-        conn = None
-        cursor = None
-        try:
-            conn = self.get_connection()
-            cursor = conn.cursor(dictionary=True)
-            query = """
-                SELECT expense_date AS date, SUM(amount) AS total_spent
-                FROM expenses
-                WHERE user_id = %s
-                AND expense_date >= CURDATE() - INTERVAL 6 DAY
-                AND expense_date <= CURDATE() 
-                GROUP BY date
-            """
-            cursor.execute(query,(user_id,))
-            data = cursor.fetchall()
-
-            return data
-        
-        except Error as e:
-            return {"error": str(e)}
-
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
+        query = """
+            SELECT expense_date AS date, SUM(amount) AS total_spent
+            FROM expenses
+            WHERE user_id = %s
+            AND expense_date >= CURDATE() - INTERVAL 6 DAY
+            AND expense_date <= CURDATE() 
+            GROUP BY date
+        """
+        return self.get_category_split(query,user_id)

@@ -120,52 +120,31 @@ def del_category(user_input:CategoryDelete, current_user:int = Depends(get_curre
         "message": response["message"]
     }
 
+@app.get("/expenses/daily-dashboard")
+def daily_dashboard(current_user:int = Depends(get_current_user)):
+    today_met = db.get_today_metric(current_user)
+    yesterday = db.get_yesterday_metric(current_user)
+    today_cat = db.get_daily_category_split(current_user)
 
-
-
-@app.get("/expenses/daily-metric")
-def daily_metrics(
-    filter: str = Query("today"),
-    current_user: int = Depends(get_current_user)
-):
-    if filter == "today":
-        data = db.get_today_metric(current_user)
-    elif filter == "yesterday":
-        data = db.get_yesterday_metric(current_user)
-    else:
-        raise HTTPException(status_code=400, detail="Invalid filter")
-    return data
-
-
-@app.get("/expenses/category-split")
-def get_category_split(filter: str = Query("daily"), current_user: int = Depends(get_current_user)):
-    
-    if filter == "daily":
-        data = db.get_daily_category_split(current_user)
-    elif filter == "weekly":
-        data = db.get_weekly_category_split(current_user)
-    else:
-        raise HTTPException(status_code=400, detail="Invalid filter")
-
-    return {
-        "cat_expenses": data
+    data = {
+        "today_metric":today_met,
+        "yesterday_metric": yesterday,
+        "today_cat_split": today_cat
     }
-
-
-@app.get("/expenses/weekly-metrics")
-def weekly_metrics(
-    filter: str = Query("current"),
-    current_user: int = Depends(get_current_user)
-):
-    if filter == "current":
-        data = db.get_current_week_metrics(current_user)
-    elif filter == "last":
-        data = db.get_last_week_metrics(current_user)
-    else:
-        raise HTTPException(status_code=400, detail="Invalid filter")
     return data
 
-@app.get("/expenses/daily-trend")
-def get_trend(current_user:int = Depends(get_current_user)):
-    data = db.get_daily_trend(current_user)
-    return {"trend":data}
+
+@app.get("/expenses/weekly-dashboard")
+def weekly_dashboard(current_user:int = Depends(get_current_user)):
+    current_week_met = db.get_current_week_metrics(current_user)
+    last_week_met = db.get_last_week_metrics(current_user)
+    current_cat = db.get_weekly_category_split(current_user)
+    daily_trend = db.get_daily_trend(current_user)
+
+    data = {
+        "current_week_metric":current_week_met,
+        "last_week_metric": last_week_met,
+        "current_week_cat_split": current_cat,
+        "daily_trend":daily_trend
+    }
+    return data
